@@ -1,3 +1,4 @@
+import threading
 from os import path
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -7,6 +8,7 @@ class Watcher(FileSystemEventHandler):
     def __init__(self, filename, matcher):
         self.filename = path.abspath(filename)
         self.matcher = matcher
+        self.counter = None
         self.observer = Observer()
         self.fd = None
         self.offset = 0
@@ -28,11 +30,11 @@ class Watcher(FileSystemEventHandler):
     def on_modified(self, event):
         if path.abspath(event.src_path) == self.filename:
             self.fd.seek(self.offset, 0)
-            match = getattr(self.matcher, 'match', lambda x: False)
             for line in self.fd:
                 line = line.rstrip('\n')
-                if match(line):
-                    print('matched {0}'.format(line))
+                if self.matcher.match(line):
+                    if self.counter is not None:
+                        self.counter.inc(self.matcher.name)
             self.offset = self.fd.tell()
 
     def on_created(self, event):
@@ -50,16 +52,3 @@ class Watcher(FileSystemEventHandler):
         if self.fd is not None and not self.fd.closed:
             self.fd.close()
 
-
-if __name__ == '__main__':
-    import sys
-    class Matcher:
-        def match(self, line):
-            return True
-
-    w = Watcher(sys.argv[1], Matcher())
-
-    try:
-        w.start()
-    except KeyboardInterrupt:
-        w.stop()
