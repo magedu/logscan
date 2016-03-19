@@ -1,3 +1,4 @@
+import re
 from queue import Queue
 
 class Token:
@@ -103,12 +104,31 @@ def make_ast(tokens):
     return stack.pop()
 
 
-if __name__ == '__main__':
-    e = '#test# & #abc# |(!#123# | #456#)'
-    #print([str(x) for x in tokenize(e)])
-    # for t in tokenize(e):
-    #     print(t)
+def cacl(ast, line):
+    if ast.root.type != Token.EXPRESSION:
+        if ast.root.value == '!':
+            return not cacl(ast.right, line)
+        if ast.root.value == '&':
+            return cacl(ast.left, line) and cacl(ast.right, line)
+        if ast.root.value == '|':
+            return cacl(ast.left, line) or cacl(ast.right, line)
+    else:
+        return re.search(ast.root.value, line) is not None
 
-    ast = make_ast(tokenize(e))
-    print(ast.visit())
+
+class Matcher:
+    def __init__(self, origin):
+        self.origin = origin
+        self.ast = make_ast(tokenize(origin))
+
+    def match(self, line):
+        return cacl(self.ast, line)
+
+
+if __name__ == '__main__':
+    e = '#test# & #abc# |(!#asd# | #456#)'
+    s = 'test cdf asd 568'
+
+    m = Matcher(e)
+    print(m.match(s))
 
