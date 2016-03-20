@@ -70,8 +70,7 @@ class Checker:
         self.__event = threading.Event()
         self.notification = notification
 
-    def start(self):
-
+    def _start(self):
         while not self.__event.is_set():
             self.__event.wait(self.interval * 60)
             count = self.counter.get(name=self.name)
@@ -79,6 +78,9 @@ class Checker:
             if count >= self.threshold[0]:
                 if count < self.threshold[1] or self.threshold[1] < 0:
                     self.notify('{0} matched {1} times in {2}min'.format(self.name, count, self.interval))
+
+    def start(self):
+        threading.Thread(self._start, name='checker-{0}'.format(self.name)).start()
 
     def notify(self, count):
         for user in self.users:
