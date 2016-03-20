@@ -1,5 +1,7 @@
 import re
-from queue import Queue
+import threading
+import logging
+from queue import Queue, Full
 
 class Token:
     LEFT_BRACKETS = 'LEFT_BRACKETS'
@@ -124,6 +126,66 @@ class Matcher:
 
     def match(self, line):
         return cacl(self.ast, line)
+
+
+class Mathcers:
+    def __init__(self, queue, counter):
+        self.checkers = {}
+        self.macthers = {}
+        self.events = {}
+        self.queue = queue
+        self.queues = {}
+        self.counter = counter
+        self.line = None
+        self.__cond = threading.Condition()
+        self.__event = threading.Event()
+
+    def _match(self, checker, event):
+        while not event.is_set():
+            line = self.queues[checker.name]
+            if self.macthers[checker.name].match(line):
+                self.counter.inc(checker.name)
+
+    def match(self, checker, event):
+        queue = Queue()
+        self.queues[checker.name] = queue
+        threading.Thread(target=self._match, args=(checker, event)).start()
+        while not event.is_set():
+            with self.__cond:
+                self.__cond.wait()
+                try:
+                    queue.put_nowait(self.line)
+                except Full:
+                    logging.error("metch queue full")
+
+    def add_checker(self, checker):
+        matcher = Matcher(checker.name, checker.expr)
+        self.checkers[checker.name] = checker
+        self.macthers[checker.name] = matcher
+        checker.start()
+        event = threading.Event()
+        self.events[checker.name] = event
+        threading.Thread(target=self.match, args=(checker, )).start()
+
+    def remove_checker(self, name):
+        if name in self.events.keys():
+            self.events[name].set()
+            self.checkers[name].stop()
+            self.events.pop(name)
+            self.checkers.pop(name)
+
+    def start(self):
+        while not self.__event.is_set():
+            self.line = self.queue.get()
+            self.__cond.notify_all()
+
+    def stop(self):
+        self.__event.set()
+        for e in self.events.values():
+            e.set()
+        for c in self.checkers.values():
+            c.stop()
+
 
 
 if __name__ == '__main__':

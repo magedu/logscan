@@ -6,11 +6,13 @@ from .match import Matcher
 
 
 class Watcher(FileSystemEventHandler):
-    def __init__(self, filename, checker):
+    def __init__(self, filename, queue):
         self.filename = path.abspath(filename)
-        self.matcher = Matcher(checker.name, checker.expr)
-        self.checker = checker
-        self.counter = None
+        #self.matcher = Matcher(checker.name, checker.expr)
+        #self.checker = checker
+        #self.counter = None
+        self.queue = queue
+
         self.observer = Observer()
         self.fd = None
         self.offset = 0
@@ -34,9 +36,10 @@ class Watcher(FileSystemEventHandler):
             self.fd.seek(self.offset, 0)
             for line in self.fd:
                 line = line.rstrip('\n')
-                if self.matcher.match(line):
-                    if self.counter is not None:
-                        self.counter.inc(self.matcher.name)
+                self.queue.put(line)
+                # if self.matcher.match(line):
+                #     if self.counter is not None:
+                #         self.counter.inc(self.matcher.name)
             self.offset = self.fd.tell()
 
     def on_created(self, event):

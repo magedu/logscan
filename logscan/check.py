@@ -4,11 +4,13 @@ from queue import Queue, Full
 
 
 class Message:
-    def __init__(self, user, name, path, count, type='mail'):
+    def __init__(self, user, name, path, count, type=None):
         self.user = user
         self.name = name
         self.path = path
         self.count = count
+        if type is None:
+            type = ['mail', ]
         self.type = type
 
 
@@ -29,7 +31,7 @@ class Notification:
         while not self.__event.is_set():
             with self.__cond:
                 self.__cond.wait()
-                if self.message.type == 'mail':
+                if 'mail' in self.message.type:
                     try:
                         self.__mail_queue.put(self.message, timeout=1)
                     except Full:
@@ -47,7 +49,7 @@ class Notification:
             self.__cond.notify_all()
 
     def start(self):
-        mail = threading.Thread(target=self._send_mail, name='send-mail')
+        mail = threading.Thread(target=self.send_mail, name='send-mail')
         mail.start()
         sms = threading.Thread(target=self.send_sms, name='send-sms')
         sms.start()
