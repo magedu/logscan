@@ -2,12 +2,14 @@ import threading
 from os import path
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
+from .match import Matcher
 
 
 class Watcher(FileSystemEventHandler):
-    def __init__(self, filename, matcher):
+    def __init__(self, filename, checker):
         self.filename = path.abspath(filename)
-        self.matcher = matcher
+        self.matcher = Matcher(checker.name, checker.expr)
+        self.checker = checker
         self.counter = None
         self.observer = Observer()
         self.fd = None
@@ -43,11 +45,14 @@ class Watcher(FileSystemEventHandler):
             self.offset = path.getsize(self.filename)
 
     def start(self):
+        t = threading.Thread(target=self.checker.check, name='Check-{0}'.format(self.checker.name))
+        t.start()
         self.observer.schedule(self, path.dirname(self.filename), recursive=False)
         self.observer.start()
         self.observer.join()
 
     def stop(self):
+        self.checker.stop()
         self.observer.stop()
         if self.fd is not None and not self.fd.closed:
             self.fd.close()
