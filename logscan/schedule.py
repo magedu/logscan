@@ -1,6 +1,8 @@
 import threading
 from os import path
 from .count import Counter
+from .notification import Notification
+from .watch import Watcher
 
 
 class Schedule:
@@ -8,6 +10,12 @@ class Schedule:
         self.watchers = {}
         self.threads = {}
         self.counter = Counter(counter_path)
+        self.notification = Notification()
+        self.notification.start()
+
+    def make_watcher(self, filename):
+        watcher = Watcher(filename, self.counter)
+        self.add_watcher(watcher)
 
     def add_watcher(self, watcher):
         if watcher.filename not in self.watchers.keys():
@@ -34,3 +42,4 @@ class Schedule:
         for w in self.watchers.values():
             w.stop()
         self.counter.stop()
+        self.notification.stop()
