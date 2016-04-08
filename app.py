@@ -1,15 +1,14 @@
-from logscan.match import Matcher
-from logscan.watch import Watcher
-from logscan.schedule import Schedule
+import sys
+import configparser
+from logscan import Scan
 
 if __name__ == '__main__':
-    import sys
-    sched = Schedule()
+    config = configparser.ConfigParser()
+    with open(sys.argv[1] if len(sys.argv) == 2 else './config.ini') as f:
+        config.read_file(f)
+    scan = Scan(config)
+    scan.start()
     try:
-        sched.add_watcher(Watcher(sys.argv[1], Matcher('#123#')))
-        sched.add_watcher(Watcher(sys.argv[2], Matcher('#123#')))
-        sched.join()
+        scan.join()
     except KeyboardInterrupt:
-        sched.remove_watcher(sys.argv[1])
-        sched.remove_watcher(sys.argv[2])
-    sched.join()
+        scan.stop()

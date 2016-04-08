@@ -1,5 +1,6 @@
 import re
-from queue import Queue, Full
+import threading
+from queue import Empty
 
 
 class Token:
@@ -118,12 +119,16 @@ def cacl(ast, line):
 
 
 class Matcher:
-    def __init__(self, name, origin):
+    def __init__(self, name, origin, order):
         self.name = name
+        self.order = order
         self.origin = origin
         self.ast = make_ast(tokenize(origin))
 
     def match(self, line):
         return cacl(self.ast, line)
+
+    def __eq__(self, other):
+        return self.name == other.name
 
 
