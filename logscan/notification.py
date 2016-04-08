@@ -6,6 +6,22 @@ from queue import Queue, Full, Empty
 from .rule import Contact
 
 
+class MailSender:
+    def __init__(self, config):
+        self.config = config
+
+    def send(self, message):
+        pass
+
+
+class SMSSender:
+    def __init__(self, config):
+        self.config = config
+
+    def send(self, message):
+        pass
+
+
 class Message:
     def __init__(self, contact, name, count, receive_time):
         if not isinstance(contact, Contact):
@@ -30,7 +46,7 @@ CREATE TABLE notifications (
 class Notifier:
     def __init__(self, config):
         self.config = config
-        self.__senders = []
+        self.__senders = [MailSender(config), SMSSender(config)]
         self.__event = threading.Event()
         self.__queue = Queue(100)
         self.__semaphore = threading.BoundedSemaphore(int(config['notification']['threads']))
@@ -56,6 +72,10 @@ class Notifier:
             self.db.rollback()
             logging.error('persistence message failed, {0}'.format(e))
 
+    def __sender_wrap(self, sender, message):
+        with self.__semaphore:
+            sender.send(message)
+
     def __send(self):
         while not self.__event.is_set():
             try:
@@ -69,10 +89,10 @@ class Notifier:
                 del row['is_sender']
                 message = Message(**row)
                 for sender in self.__senders:
-                    with self.__semaphore:
-                        t = threading.Thread(target=sender, args=(message, ), name='sender-{0}'.format(sender.__name__))
-                        t.daemon = True
-                        t.start()
+                    t = threading.Thread(target=self.__sender_wrap, args=(sender, message),
+                                         name='sender-{0}'.format(sender.__name__))
+                    t.daemon = True
+                    t.start()
                 self.cursor.execute(r'UPDATE notifications SET is_send=? WHERE rowid=?', (True, row_id))
                 self.db.commit()
             except Empty:
