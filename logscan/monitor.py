@@ -33,7 +33,6 @@ class Monitor:
 
     def __remove_matcher(self, name):
         self.matcher_list.remove(Matcher(name, '', 0))
-        #self.matcher_list = sorted(self.matcher_list, key=lambda x: x.order)
 
     def __remove_checker(self, name):
         checker = None
@@ -51,7 +50,7 @@ class Monitor:
     def __do_match(self):
         while not self.__event.is_set():
             try:
-                line = self.queue.get(timeout=100)
+                line = self.queue.get(timeout=0.1)
                 for matcher in self.matcher_list:
                     if matcher.match(line):
                         self.counter.inc(matcher.name)

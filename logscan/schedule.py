@@ -18,24 +18,33 @@ class Schedule:
         self.offset_db = OffsetPersistence(config)
 
     def __make_key(self, filename):
-        return path.abspath(urlsafe_b64decode(filename))
+        return path.abspath(urlsafe_b64decode(filename).decode())
 
     def add_watcher(self, filename):
-        handler = WatcherHandler(urlsafe_b64decode(filename), counter=self.counter,
-                                 notifier=self.notifier, offset_db=self.offset_db)
-        if handler.filename not in self.handlers.keys():
+        filename = self.__make_key(filename)
+        if path.abspath(filename) not in self.handlers.keys():
+            handler = WatcherHandler(filename, counter=self.counter,
+                                     notifier=self.notifier, offset_db=self.offset_db)
+            if path.dirname(handler.filename) not in self.watchers.keys():
+                self.watchers[path.dirname(handler.filename)] = self.observer.schedule(handler,
+                                                                                       path.dirname(handler.filename),
+                                                                                       recursive=False)
+            else:
+                watch = self.watchers[path.dirname(handler.filename)]
+                self.observer.add_handler_for_watch(handler, watch)
             self.handlers[handler.filename] = handler
-            self.watchers[handler.filename] = self.observer.schedule(handler,
-                                                                     path.dirname(handler.filename),
-                                                                     recursive=False)
             handler.start()
 
     def remove_watcher(self, filename):
         key = self.__make_key(filename)
-        if key in self.watchers.keys():
-            self.observer.unschedule(self.watchers.get(key))
-            self.watchers.pop(key)
-            self.handlers.pop(key).stop()
+        handler = self.handlers.pop(key)
+        if handler is not None:
+            watch = self.watchers[path.dirname(key)]
+            self.observer.remove_handler_for_watch(handler, watch)
+            handler.stop()
+            if not self.observer._handlers[watch]:
+                self.observer.unschedule(watch)
+                self.watchers.pop(path.dirname(handler.filename))
 
     def add_monitor(self, filename, name, src):
         key = self.__make_key(filename)

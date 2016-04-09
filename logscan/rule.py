@@ -34,8 +34,8 @@ class Rule:
 
     @classmethod
     def loads(cls, filename, name, src):
-        filename = urlsafe_b64decode(filename)
-        name = urlsafe_b64decode(name)
+        filename = urlsafe_b64decode(filename).decode()
+        name = urlsafe_b64decode(name).decode()
         content = json.loads(src)
         contacts = [Contact(**contact) for contact in content.get('contacts', [])]
         # contacts = []
