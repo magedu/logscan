@@ -1,7 +1,6 @@
 import sqlite3
 import threading
 import logging
-import datetime
 from queue import Queue, Full, Empty
 from .rule import Contact
 
@@ -33,7 +32,7 @@ class Message:
 
 
 CREATE_TABLE_DDL = r'''
-CREATE TABLE notifications (
+CREATE TABLE IF NOT EXISTS notifications (
   id             INTEGER      PRIMARY KEY AUTOINCREMENT,
   name           STRING (128) NOT NULL,
   count          BIGINT       NOT NULL,
@@ -63,7 +62,7 @@ class Notifier:
         sql = r'INSERT INTO notifications (name, count, contact, receive_time) VALUES (?, ?, ?, ?)'
         try:
             ret = self.cursor.execute(sql, (message.name, message.count,
-                                            message.contact.dumps(), datetime.datetime.now()))
+                                            message.contact.dumps(), message.receive_time))
             self.db.commit()
             self.__queue.put_nowait(ret.lastrowid)
         except Full:
@@ -104,11 +103,11 @@ class Notifier:
             try:
                 self.__queue.put_nowait(row['rowid'])
             except Full:
-                logging.warning('notification queue full');
+                logging.warning('notification queue full')
 
     def __compensation(self):
         while self.__event.is_set():
-            self.__event.wait(60*1000)
+            self.__event.wait(60)
             self.__compensate()
 
     def start(self):

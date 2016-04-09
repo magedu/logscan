@@ -14,7 +14,6 @@ class Scan:
         self.schedule = Schedule(config)
         self.zk = KazooClient(hosts=config['zookeeper']['connect'], read_only=True)
         self.root = path.join(config['zookeeper']['root'], self.app_id)
-        self.zk.start()
         self.files = set()
         self.rules = {}
         self.file_watchers_ctl = {}
@@ -31,7 +30,7 @@ class Scan:
             self.schedule.remove_watcher(f)
             event = self.file_watchers_ctl.pop(f)
             event.set()
-        self.files.update(files)
+        self.files = set(files)
         return not self.__event.is_set()
 
     def watch_rules(self, rules, filename, event):
@@ -46,7 +45,7 @@ class Scan:
         for rule in self.rules[filename].difference(set(rules)):
             self.schedule.remove_monitor(filename, rule)
             self.rule_watchers_ctl.pop(rule).set()
-        self.rules[filename].update(rules)
+        self.rules[filename] = set(rules)
         return not event.is_set()
 
     def watch_rule(self, data, stat, zk_event, filename, name, event):
