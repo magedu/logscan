@@ -33,7 +33,7 @@ class Monitor:
 
     def __remove_matcher(self, name):
         self.matcher_list.remove(Matcher(name, '', 0))
-        self.matcher_list = sorted(self.matcher_list, key=lambda x: x.order)
+        #self.matcher_list = sorted(self.matcher_list, key=lambda x: x.order)
 
     def __remove_checker(self, name):
         checker = None

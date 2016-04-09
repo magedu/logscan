@@ -52,7 +52,7 @@ class Schedule:
         if handler is None:
             logging.warning('watcher {0} not found'.format(filename))
             return
-        handler.remove_matcher(name)
+        handler.monitor.remove(name)
 
     def start(self):
         self.observer.start()

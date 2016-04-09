@@ -38,6 +38,9 @@ class Rule:
         name = urlsafe_b64decode(name)
         content = json.loads(src)
         contacts = [Contact(**contact) for contact in content.get('contacts', [])]
+        # contacts = []
+        # for contact in content.get('contacts', []):
+        #     contacts.append(Contact(**contact))
         threshold = Threshold(**content['threshold'])
         return cls(filename, name, content['expression'],
                    content['interval'], threshold, content['order'], contacts)

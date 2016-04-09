@@ -63,3 +63,5 @@ target/
 
 .python-version
 *.db
+.idea
+*.iml

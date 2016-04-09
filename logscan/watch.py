@@ -18,11 +18,15 @@ class WatcherHandler(FileSystemEventHandler):
         self.timer = datetime.now()
         if path.isfile(self.filename):
             self.fd = open(self.filename)
-            offset = self.offset_db.get(offset_db)
+            offset = self.offset_db.get(self.filename)
+            file_size = path.getsize(self.filename)
             if offset < 0:
-                self.offset = path.getsize(self.filename)
+                self.offset = file_size
             else:
-                self.offset = offset
+                if offset <= file_size:
+                    self.offset = offset
+                else:
+                    self.offset = 0
 
     def start(self):
         self.monitor.start()
